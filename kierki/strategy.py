@@ -52,8 +52,8 @@ def score_move(ctx: Ctx, card: Card) -> Score:
 def _forced_take(ctx: Ctx, card: Card, legal: list[Card]) -> Score:
     """Każda legalna karta na pewno bierze lewę: najlepiej najwyższa niepunktowana."""
     P = ctx.params
-    reasons = ["Każda moja legalna karta na pewno bierze lewę - zebranie jest wymuszone, "
-               "więc agresywności nie oceniam."]
+    reasons = [("Każda moja legalna karta na pewno bierze lewę - zebranie jest wymuszone, "
+                "więc agresywności nie oceniam.")]
     nonpen = sorted((c for c in legal if ctx.pen(c) == 0), key=lambda c: -c.value)
     if nonpen and ctx.pen(card) > 0:
         ref = ctx.ref_penalty
@@ -97,6 +97,9 @@ def _follow_take(ctx: Ctx, card: Card, legal: list[Card]) -> Score:
                           else " Lepiej zebrać wyższą niepunktowaną kartą."))
     else:
         reasons.append("Zbieram lewę z karami (na stole lub z karą za lewę), choć mogłem jej uniknąć.")
+        if any(not ctx.beats_current(c) for c in legal):
+            # znane kary biorę świadomie - mogłem dołożyć kartę, która nie bierze
+            corr = min(corr, 100 - p * (100 - P.take_known_penalty_cap))
     if risk >= 0.5:
         reasons.append(f"Wysokie ryzyko wzięcia kar (ryzyko={risk:.2f}).")
     void = ctx.void_prob(card.suit)
@@ -125,13 +128,22 @@ def _safe_discard(ctx: Ctx, card: Card, legal: list[Card]) -> Score:
             reasons.append("Mogłem zrzucić większą karę.")
     else:
         missed = P.missed_dump_loss * min(1.0, max_pen / ref) if pens and ref > 0 else 0.0
-        corr = 100 - missed - P.shed_rank_loss * (1 - r)
+        top = max(c.value for c in safe if ctx.pen(c) == 0)
+        corr = 100 - missed - P.shed_rank_loss * (top - card.value) / 12
         holds_pen = any(ctx.pen(c) > 0 for c in ctx.hand)
         heavy = ctx.heavy_prob(card.suit) if holds_pen else 0.0
         corr += P.suspect_bonus * heavy
         kept = min(1.0, sum(ctx.pen(c) for c in pens) / ref) if pens and ref > 0 else 0.0
         aggr = P.shed_base_aggr + P.shed_high_aggr * r + P.shed_kept_aggr * kept
         comps = {"heavy_prob": heavy, "kept_penalty": kept}
+        if scenario == "follow_duck":
+            take = _safe_take_value(ctx, legal)
+            corr -= P.duck_missed_take_loss * take
+            comps["missed_take"] = take
+            if take >= 0.3:
+                reasons.append("Mogłem bezpiecznie zebrać czystą lewę - szkoda niskiej karty na tym etapie.")
+        if card.value < top:
+            reasons.append("Mam wyższą kartę, która też nie bierze lewy.")
         if pens:
             reasons.append("Zrzucam kartę niepunktowaną, choć mogłem zrzucić punktową - "
                            "bardziej ryzykowne" + (", ale ktoś prawdopodobnie ma dużo tego koloru."
@@ -141,19 +153,35 @@ def _safe_discard(ctx: Ctx, card: Card, legal: list[Card]) -> Score:
     return Score(scenario, _clamp(corr), _clamp(aggr), reasons, comps)
 
 
+def _safe_take_value(ctx: Ctx, legal: list[Card]) -> float:
+    """0..1: na ile opłacało się zebrać lewę zamiast dokładać pod spód (czysta lewa, niskie ryzyko, wcześnie)."""
+    if ctx.rules.trick_penalty(ctx.trick_number) > 0 or any(ctx.pen(c) > 0 for c in ctx.current):
+        return 0.0
+    takers = [c for c in legal if ctx.beats_current(c) and ctx.pen(c) == 0]
+    if not takers:
+        return 0.0
+    best = max(takers, key=lambda c: c.value)
+    return (1 - ctx.risk(best)) * (1 - ctx.progress)
+
+
 # ---------------------------------------------------------------------------
 def _lead(ctx: Ctx, card: Card) -> Score:
     """Ja otwieram lewę: wybór koloru i wysokości karty."""
     P = ctx.params
     suit = card.suit
-    p, risk, void = ctx.p_win(card), ctx.risk(card), ctx.void_prob(suit)
+    counts = Counter(c.suit for c in ctx.hand)
+    last_card = counts[suit] == 1
+    # ostatnią kartą koloru pozbywam się go - zrzut kar od gracza bez koloru liczy się słabiej
+    void_weight = 1 - P.lead_last_card_relief if last_card else 1.0
+    p, risk, void = ctx.p_win(card), ctx.risk(card, void_weight), ctx.void_prob(suit)
     corr = 100.0 * (1 - risk)
     reasons = []
+    if last_card and p > 0:
+        reasons.append("Ostatnia karta w tym kolorze - pozbywam się koloru.")
     if risk >= 0.5:
         reasons.append(f"Wysokie ryzyko wzięcia kar (ryzyko={risk:.2f}): w tym kolorze są jeszcze "
-                       "karty punktowane albo lewa jest karana.")
+                       "karty punktowane, lewa jest karana albo gracz bez koloru zrzuci mi karę.")
 
-    counts = Counter(c.suit for c in ctx.hand)
     own_pen = {s: any(ctx.pen(c) > 0 for c in ctx.hand if c.suit == s) for s in counts}
     clean = [s for s in counts if not own_pen[s]]
     danger = (ctx.rules.trick_penalty(ctx.trick_number) > 0

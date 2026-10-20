@@ -1,9 +1,9 @@
 """Rodzaje rund i punkty karne (łatwo zmienić w słowniku poniżej)."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable
 
 from .cards import Card
 

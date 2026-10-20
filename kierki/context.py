@@ -124,8 +124,10 @@ class Ctx:
         return 1.0 - none
 
     # ---------- ryzyko wzięcia kar ----------
-    def expected_trick_penalty(self, card: Card) -> float:
-        """Oczekiwana kara w lewie, jeśli ją wezmę zagraną kartą (znane karty + zrzuty następnych graczy)."""
+    def expected_trick_penalty(self, card: Card, void_weight: float = 1.0) -> float:
+        """Oczekiwana kara w lewie, jeśli ją wezmę zagraną kartą (znane karty + zrzuty następnych graczy).
+
+        void_weight skaluje składnik "gracz bez koloru zrzuca mi karę"."""
         P = self.params
         suit = self.lead_suit or card.suit
         known = (self.rules.trick_penalty(self.trick_number)
@@ -144,13 +146,13 @@ class Ctx:
             mean_pen = sum(others) / len(others)
             p_has = min(1.0, self.h * len(others) / total)
             e_void = P.attack_rate * self.void_prob(suit) * p_has * mean_pen
-        return known + e_same + e_void
+        return known + e_same + void_weight * e_void
 
-    def risk(self, card: Card) -> float:
+    def risk(self, card: Card, void_weight: float = 1.0) -> float:
         """0..1: P(wezmę) * oczekiwana kara, względem "złej lewy"."""
         if self.ref_penalty <= 0:
             return 0.0
-        return min(1.0, self.p_win(card) * self.expected_trick_penalty(card) / self.ref_penalty)
+        return min(1.0, self.p_win(card) * self.expected_trick_penalty(card, void_weight) / self.ref_penalty)
 
 
 def prepare(state: GameState, params: Params) -> Ctx:

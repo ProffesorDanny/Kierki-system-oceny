@@ -1,6 +1,9 @@
 from .evaluator import (
-    GameState, InvalidState, MoveEvaluation,
-    evaluate_all, evaluate_move,
+    GameState,
+    InvalidState,
+    MoveEvaluation,
+    evaluate_all,
+    evaluate_move,
 )
 from .params import Params
 from .rounds import RoundType

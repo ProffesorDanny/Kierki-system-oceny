@@ -24,12 +24,17 @@ class Params:
     take_not_highest_loss: float = 30.0     # celowe zebranie niższą niż najwyższa niepunktowana (skala wg różnicy rang)
     dump_order_loss: float = 30.0           # zrzut mniejszej kary zamiast większej
     dump_rank_loss: float = 4.0             # przy równych karach: lepiej zrzucić wyższą kartę
-    missed_dump_loss: float = 30.0          # niepunktowana karta, choć mogłem bezpiecznie zrzucić punktową
-    shed_rank_loss: float = 20.0            # pozbywanie się niskiej karty zamiast wysokiej
+    missed_dump_loss: float = 40.0          # niepunktowana karta, choć mogłem bezpiecznie zrzucić punktową
+    shed_rank_loss: float = 20.0            # niższa karta niż najwyższa możliwa bez brania (skala wg różnicy rang)
+    duck_missed_take_loss: float = 40.0     # dokładam pod spód, choć mogłem bezpiecznie zebrać czystą lewę
+                                            # (maleje z ryzykiem tego zebrania i z numerem lewy)
+    take_known_penalty_cap: float = 15.0    # max poprawność, gdy na pewno biorę znane kary, a mogłem nie brać
     suspect_bonus: float = 20.0             # bonus, gdy ktoś prawdopodobnie ma dużo koloru, którego się pozbywam
     lead_own_penalty_loss: float = 40.0     # wyjście w kolor z moimi kartami punktowanymi (są inne)
     lead_long_suit_loss: float = 5.0        # długi kolor, w którym punktowane mają inni (nadal poprawne)
     lead_no_danger_loss: float = 25.0       # długi kolor bez żadnych kar w grze ("nic nie daje")
+    lead_last_card_relief: float = 0.5      # wyjście ostatnią kartą koloru: o tyle mniej liczy się ryzyko
+                                            # zrzutu kar od gracza bez koloru (pozbywam się koloru)
 
     # --- agresywność ---
     take_aggr_base: float = 55.0       # zamiar zebrania lewy: wartość na początku rozdania...

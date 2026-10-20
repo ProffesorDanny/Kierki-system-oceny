@@ -36,13 +36,16 @@ Scenariusz wybiera `strategy.score_move`; wszystkie liczby są w `kierki/params.
 |---|---|---|---|
 | Na pewno zbiorę lewę → najwyżej niepunktowaną; punktowaną tylko gdy muszę | `forced_take` (każda legalna karta na pewno bierze) | najwyższa niepunktowana = 100, niższe tracą do `forced_rank_loss`, karta punktowa ≤ `forced_penalty_card_cap` | `None` – nie oceniamy |
 | Celowe zbieranie lew bez kar: agresywne, najwyższą niepunktowaną, im później tym bardziej | `follow_take` | 100 · (1 − ryzyko), minus `take_not_highest_loss` za niższą niż najwyższa niepunktowana | `p_win · (take_aggr_base + take_aggr_progress · postęp)` + ryzyko |
+| Zbieranie pewnych kar (karta karna na stole / karana lewa), choć mogłem dołożyć kartę, która nie bierze | `follow_take` | najwyżej 100 − p_win · (100 − `take_known_penalty_cap`) | j.w. |
 | Wyjście w najkrótszym kolorze bez własnych kar | `lead` | bez straty | rośnie z ryzykiem, że komuś skończy się kolor (`void_aggr · P(renons)`) |
+| Wyjście ostatnią kartą koloru (pozbywam się koloru) | `lead` | ryzyko zrzutu kar od gracza bez koloru liczy się o `lead_last_card_relief` słabiej | j.w. |
 | Wysokie karty z niego: agresywne i poprawne, chyba że kary tego koloru jeszcze nie zagrane | `lead` | ryzyko = P(wezmę) · (kary na stole + oczekiwane zrzuty kar tego koloru) | j.w. + `risk_aggr · ryzyko` |
 | Długi kolor z moimi karami punktowanymi: niepoprawne | `lead` | −`lead_own_penalty_loss` (o ile istnieje kolor bez moich kar) | j.w. |
 | Długi kolor, kary mają inni: poprawne, agresywniej im więcej koloru zagrano | `lead` | −`lead_long_suit_loss` | rośnie z `P(renons)` |
 | Długi kolor bez żadnych kar w grze | `lead` | −`lead_no_danger_loss` („nic nie daje”) – moje rozszerzenie | j.w. |
 | Brak koloru: zrzut kar bardzo poprawny | `void_discard` / `follow_duck` | najwyższa kara = 100, mniejsze tracą `dump_order_loss` | `dump_pen_aggr` (niska) |
-| Brak koloru: wysokie niepunktowane też można, ale agresywniej; dobre, gdy ktoś ma dużo koloru | `void_discard` / `follow_duck` | −`missed_dump_loss` (jeśli mogłem zrzucić karę) − `shed_rank_loss` za niską kartę + `suspect_bonus · P(ktoś ma dużo koloru)` | `shed_base_aggr + shed_high_aggr · ranga + shed_kept_aggr · zatrzymane kary` |
+| Brak koloru: wysokie niepunktowane też można, ale agresywniej; dobre, gdy ktoś ma dużo koloru | `void_discard` / `follow_duck` | −`missed_dump_loss` (jeśli mogłem zrzucić karę) − `shed_rank_loss` za niższą kartę niż najwyższa, która nie bierze + `suspect_bonus · P(ktoś ma dużo koloru)` | `shed_base_aggr + shed_high_aggr · ranga + shed_kept_aggr · zatrzymane kary` |
+| Dokładam pod spód, choć mogłem bezpiecznie zebrać czystą lewę (marnuję niską kartę) | `follow_duck` | −`duck_missed_take_loss` · (1 − ryzyko zebrania) · (1 − postęp) | bez zmian |
 
 Wspólne pojęcia:
 - **ryzyko** = min(1, P(wezmę lewę) · oczekiwana kara / „zła lewa”); kara = kara za lewę + karty na stole + moja karta

@@ -17,7 +17,11 @@ from . import GameState, RoundType, evaluate_all, evaluate_move
 
 
 def main() -> None:
-    raw = open(sys.argv[1], encoding="utf-8").read() if len(sys.argv) > 1 else sys.stdin.read()
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], encoding="utf-8") as f:
+            raw = f.read()
+    else:
+        raw = sys.stdin.read()
     d = json.loads(raw)
     state = GameState(
         hand=d["hand"],
