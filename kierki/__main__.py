@@ -18,11 +18,11 @@ from . import GameState, RoundType, evaluate_all, evaluate_move
 
 def main() -> None:
     if len(sys.argv) > 1:
-        with open(sys.argv[1], encoding="utf-8") as f:
+        with open(sys.argv[1], encoding="utf-8-sig") as f:
             raw = f.read()
     else:
         raw = sys.stdin.read()
-    d = json.loads(raw)
+    d = json.loads(raw.lstrip("\ufeff"))  # BOM: Notatnik / potok w PowerShell 5.1
     state = GameState(
         hand=d["hand"],
         round_type=RoundType(d["round"]),

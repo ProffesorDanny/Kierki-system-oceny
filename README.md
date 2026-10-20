@@ -22,7 +22,69 @@ evaluate_move(state, "9h")   # ocena jednego ruchu
 evaluate_all(state)          # wszystkie legalne ruchy, od najlepszego
 ```
 
-CLI: `python -m kierki plik.json` (lub JSON ze stdin) – format w `kierki/__main__.py`.
+### Z linii komend
+
+Uruchamiane z katalogu projektu (tam, gdzie jest folder `kierki/`). Stan gry podaje się w pliku JSON:
+
+| Pole | Znaczenie |
+|---|---|
+| `round` | rodzaj rundy, np. `no_queens` (lista niżej) |
+| `hand` | moja ręka **przed** zagraniem: 13 − liczba zakończonych lew kart |
+| `history` | zakończone lewy, każda jako 4 karty w kolejności kładzenia (opcjonalne) |
+| `current_trick` | karty już leżące w bieżącej lewie; pusta lista = ja wychodzę (opcjonalne) |
+| `card` | karta do oceny (opcjonalne); bez tego pola oceniane są wszystkie legalne ruchy, od najlepszego |
+
+Przykład (`examples/bez_dam_krol_pik.json`): runda bez dam, zeszły już Ap, Dp, 10p, 7p, 8p, 6p, 4p, 2p i Jp,
+w 4. lewie wychodzę Kp – moim ostatnim pikiem:
+
+```json
+{
+  "round": "no_queens",
+  "hand": ["Ks", "2h", "3h", "4h", "5h", "2d", "3d", "4d", "6c", "7c"],
+  "history": [
+    ["As", "Qs", "10s", "7s"],
+    ["8s", "6s", "4s", "2s"],
+    ["Js", "2c", "3c", "4c"]
+  ],
+  "current_trick": [],
+  "card": "Ks"
+}
+```
+
+```powershell
+python -m kierki examples\bez_dam_krol_pik.json        # PowerShell / cmd
+Get-Content examples\bez_dam_krol_pik.json | python -m kierki   # albo przez stdin
+```
+
+```bash
+python -m kierki examples/bez_dam_krol_pik.json         # bash
+python -m kierki < examples/bez_dam_krol_pik.json
+```
+
+Wynik (JSON):
+
+```json
+{
+  "card": "Ks",
+  "legal": true,
+  "errors": [],
+  "correctness": 78.0,
+  "verdict": "poprawne",
+  "aggressiveness": 98.9,
+  "aggressiveness_label": "bardzo agresywny",
+  "scenario": "lead",
+  "reasons": [
+    "Ostatnia karta w tym kolorze - pozbywam się koloru.",
+    "Najkrótszy kolor bez moich kart punktowanych - pozbywam się koloru.",
+    "Sporo tego koloru już zagrano - rośnie szansa, że komuś się skończy."
+  ],
+  "components": {"p_win": 1.0, "risk": 0.22, "void_prob": 0.628, "progress": 0.25}
+}
+```
+
+Bez pola `card` dostaniesz listę takich obiektów dla każdej legalnej karty (tu: niskie karty ok. 93 pkt, Kp 78).
+Nielegalny ruch zwraca `"legal": false` i opis w `errors`. Jeśli polskie znaki w wyniku są zniekształcone
+(przekierowanie do pliku lub potok), ustaw kodowanie UTF-8: `$env:PYTHONUTF8=1` (PowerShell) lub `export PYTHONUTF8=1` (bash).
 
 Zapis kart: `<ranga><kolor>`, ranga `2–10, J, Q, K, A`, kolor `s` (pik), `h` (kier), `d` (karo), `c` (trefl).
 `hand` to ręka **przed** zagraniem (razem z ocenianą kartą). Rundy (`RoundType`): `no_tricks`, `no_hearts`,
@@ -64,4 +126,10 @@ Wspólne pojęcia:
 
 ## Testy
 
-`pytest` (testy w `tests/test_evaluator.py`).
+`python -m pytest` – testy w `tests/test_evaluator.py` (podstawy) i `tests/test_scenarios.py` (scenariusze z różnych
+rund i etapów rozdania).
+
+Każde uruchomienie zapisuje raport **`tests/wyniki_testow.md`** (generuje go `tests/conftest.py`): dla każdego testu
+opis, co sprawdza, status, wejście (runda, ręka, historia, karty na stole) i wynik oceny każdej sprawdzanej karty.
+Raport obejmuje tylko testy z danego uruchomienia – np. `python -m pytest -k rozbojnik` nadpisze go samymi testami
+rozbójnika.
