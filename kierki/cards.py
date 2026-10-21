@@ -29,7 +29,7 @@ def parse_card(text: str) -> Card:
         raise ValueError(f"Nieprawidłowa karta: {text!r} (oczekiwano np. 'Qs', '10h', 'Ad')")
     rank, suit = m.groups()
     rank = rank.upper()
-    if rank == "T":
+    if rank == "T":     #Zamiana T na 10
         rank = "10"
     return Card(rank, suit.lower())
 
